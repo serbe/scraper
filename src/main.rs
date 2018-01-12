@@ -1,3 +1,6 @@
+#![feature(plugin)]
+#![plugin(clippy)]
+
 //#[macro_use]
 extern crate log;
 extern crate hyper;
@@ -54,10 +57,10 @@ use futures::{Future, Stream};
 //        .boxed()
 //}
 
-fn get_https_body(handle: Handle, url: Uri) -> Box<Future<Item=String, Error=()>> {
+fn get_https_body(handle: &Handle, url: Uri) -> Box<Future<Item=String, Error=()>> {
     let client = Client::configure()
-        .connector(HttpsConnector::new(4, &handle).unwrap())
-        .build(&handle);
+        .connector(HttpsConnector::new(4, handle).unwrap())
+        .build(handle);
     let f = client.get(url)
         .map_err(|_err| ())
         .and_then(|resp| {
@@ -69,8 +72,8 @@ fn get_https_body(handle: Handle, url: Uri) -> Box<Future<Item=String, Error=()>
     Box::new(f)
 }
 
-fn get_http_body(handle: Handle, url: Uri) -> Box<Future<Item=String, Error=()>> {
-    let client = Client::new(&handle);
+fn get_http_body(handle: &Handle, url: Uri) -> Box<Future<Item=String, Error=()>> {
+    let client = Client::new(handle);
     let f = client.get(url)
         .map_err(|_err| ())
         .and_then(|resp| {
@@ -82,7 +85,7 @@ fn get_http_body(handle: Handle, url: Uri) -> Box<Future<Item=String, Error=()>>
     Box::new(f)
 }
 
-fn get_body(handle: Handle, url: Uri) -> Box<Future<Item=String, Error=()>> {
+fn get_body(handle: &Handle, url: Uri) -> Box<Future<Item=String, Error=()>> {
     match url.scheme() {
         Some("https") => get_https_body(handle, url),
         _ => get_http_body(handle, url),
@@ -109,7 +112,7 @@ fn get_body(handle: Handle, url: Uri) -> Box<Future<Item=String, Error=()>> {
 fn main() {
     let mut core = Core::new().unwrap();
     let handle = core.handle();
-    let f = get_body(handle, "https://hyper.rs".parse().unwrap()).map(|s| {
+    let f = get_body(&handle, "https://hyper.rs".parse().unwrap()).map(|s| {
         println!("resp: {}", s);
     });
     core.run(f).unwrap();
